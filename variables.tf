@@ -4,9 +4,15 @@ variable "project_id" {
 }
 
 variable "region" {
-  description = "The Google Cloud region for Cloud Run and Cloud SQL resources."
+  description = "The Google Cloud region for resources."
   type        = string
   default     = "us-central1"
+}
+
+variable "zone" {
+  description = "The Google Cloud zone for the n8n Compute Engine VM."
+  type        = string
+  default     = "us-central1-a"
 }
 
 variable "backend_bucket_name" {
@@ -20,16 +26,52 @@ variable "backend_prefix" {
   default     = "terraform/n8n"
 }
 
-variable "service_name" {
-  description = "The name of the Cloud Run service for n8n. If blank, a unique name will be generated."
+variable "instance_name" {
+  description = "The name of the Compute Engine VM instance for n8n. If blank, a unique name will be generated."
   type        = string
   default     = ""
 }
 
-variable "service_account_name" {
-  description = "The account ID for the dedicated n8n Cloud Run service account. If blank, a unique name will be generated."
+variable "machine_type" {
+  description = "The Compute Engine machine type for the n8n VM."
   type        = string
-  default     = ""
+  default     = "e2-small"
+}
+
+variable "boot_disk_size" {
+  description = "The boot disk size in GB for the n8n VM."
+  type        = number
+  default     = 30
+}
+
+variable "boot_disk_type" {
+  description = "The boot disk type for the n8n VM (e.g., pd-balanced, pd-ssd, pd-standard)."
+  type        = string
+  default     = "pd-balanced"
+}
+
+variable "boot_image" {
+  description = "The boot disk OS image for the n8n VM."
+  type        = string
+  default     = "ubuntu-os-cloud/ubuntu-2404-lts-amd64"
+}
+
+variable "network" {
+  description = "The VPC network to attach the n8n VM to."
+  type        = string
+  default     = "default"
+}
+
+variable "allowed_source_ranges" {
+  description = "List of source IPv4 CIDR ranges allowed to access the n8n web UI port."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+variable "n8n_port" {
+  description = "The TCP port on which n8n will be exposed."
+  type        = number
+  default     = 5678
 }
 
 variable "container_image_name" {
@@ -44,98 +86,26 @@ variable "container_image_tag" {
   default     = "latest"
 }
 
-variable "cpu" {
-  description = "The number of vCPUs allocated to the n8n Cloud Run container."
+variable "postgres_image_tag" {
+  description = "The tag of the official postgres Docker image to run alongside n8n."
   type        = string
-  default     = "1"
-}
-
-variable "memory" {
-  description = "The memory limit allocated to the n8n Cloud Run container (n8n docs recommend 2Gi)."
-  type        = string
-  default     = "2Gi"
-}
-
-variable "cpu_idle" {
-  description = "Whether CPU is throttled when no requests are being processed. Set to false (--no-cpu-throttling) per n8n docs so background triggers and workflows continue running."
-  type        = bool
-  default     = false
-}
-
-variable "min_instance_count" {
-  description = "Minimum number of Cloud Run container instances."
-  type        = number
-  default     = 0
-}
-
-variable "max_instance_count" {
-  description = "Maximum number of Cloud Run container instances."
-  type        = number
-  default     = 1
-}
-
-variable "allow_unauthenticated" {
-  description = "Whether to allow public unauthenticated access to the n8n Cloud Run service."
-  type        = bool
-  default     = true
+  default     = "16"
 }
 
 variable "timezone" {
-  description = "The GENERIC_TIMEZONE setting for n8n."
+  description = "The GENERIC_TIMEZONE and TZ setting for n8n and PostgreSQL."
   type        = string
   default     = "UTC"
 }
 
 variable "webhook_url" {
-  description = "Optional custom public base URL for n8n webhooks and editor (e.g., https://n8n.example.com/)."
+  description = "Optional custom public base URL for n8n webhooks and editor (e.g., http://<ip>:5678/ or https://n8n.example.com/). Defaults to http://<vm-public-ip>:5678/ if left blank."
   type        = string
   default     = ""
-}
-
-variable "db_instance_name" {
-  description = "The name of the Cloud SQL PostgreSQL instance. If blank, a unique name will be generated."
-  type        = string
-  default     = ""
-}
-
-variable "db_version" {
-  description = "The PostgreSQL version for the Cloud SQL instance."
-  type        = string
-  default     = "POSTGRES_16"
-}
-
-variable "db_tier" {
-  description = "The machine tier for the Cloud SQL PostgreSQL instance (e.g. db-f1-micro)."
-  type        = string
-  default     = "db-f1-micro"
-}
-
-variable "db_edition" {
-  description = "The edition for the Cloud SQL instance (ENTERPRISE or ENTERPRISE_PLUS)."
-  type        = string
-  default     = "ENTERPRISE"
-}
-
-variable "db_disk_size" {
-  description = "The storage size in GB for the Cloud SQL instance."
-  type        = number
-  default     = 10
-}
-
-variable "db_disk_type" {
-  description = "The disk type for the Cloud SQL instance (PD_SSD or PD_HDD)."
-  type        = string
-  default     = "PD_HDD"
-}
-
-variable "db_deletion_protection" {
-  description = "Whether to enable Terraform deletion protection on the Cloud SQL instance."
-  type        = bool
-  default     = false
 }
 
 variable "db_name" {
-  description = "The name of the PostgreSQL database inside the Cloud SQL instance."
+  description = "The name of the PostgreSQL database for n8n."
   type        = string
   default     = "n8n"
 }
@@ -147,14 +117,14 @@ variable "db_user" {
 }
 
 variable "db_password" {
-  description = "The PostgreSQL password for n8n. If left blank, a random password will be generated and stored in Secret Manager."
+  description = "The PostgreSQL password for n8n. If left blank, a random password will be generated."
   type        = string
   default     = ""
   sensitive   = true
 }
 
 variable "n8n_encryption_key" {
-  description = "The N8N_ENCRYPTION_KEY used to encrypt credentials in the database. If left blank, a random key will be generated and stored in Secret Manager."
+  description = "The N8N_ENCRYPTION_KEY used to encrypt credentials in the database. If left blank, a random key will be generated."
   type        = string
   default     = ""
   sensitive   = true

@@ -1,25 +1,20 @@
 # Terraform outputs
-output "service_name" {
-  description = "The name of the deployed n8n Cloud Run service."
-  value       = google_cloud_run_v2_service.n8n.name
+output "instance_name" {
+  description = "The name of the deployed n8n Compute Engine VM."
+  value       = google_compute_instance.n8n.name
 }
 
-output "service_url" {
-  description = "The public HTTPS URL of the deployed n8n Cloud Run service."
-  value       = google_cloud_run_v2_service.n8n.uri
+output "instance_zone" {
+  description = "The zone of the deployed n8n Compute Engine VM."
+  value       = google_compute_instance.n8n.zone
 }
 
-output "service_account_email" {
-  description = "The email of the service account running the n8n Cloud Run service."
-  value       = google_service_account.n8n.email
+output "public_ip" {
+  description = "The public IPv4 address of the n8n Compute Engine VM."
+  value       = google_compute_instance.n8n.network_interface[0].access_config[0].nat_ip
 }
 
-output "db_instance_name" {
-  description = "The name of the Cloud SQL PostgreSQL instance."
-  value       = google_sql_database_instance.n8n.name
-}
-
-output "db_connection_name" {
-  description = "The Cloud SQL instance connection name used by the Cloud SQL Auth Proxy."
-  value       = google_sql_database_instance.n8n.connection_name
+output "n8n_url" {
+  description = "The public URL of the deployed n8n instance."
+  value       = "http://${google_compute_instance.n8n.network_interface[0].access_config[0].nat_ip}:${var.n8n_port}"
 }
