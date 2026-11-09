@@ -1,0 +1,51 @@
+name: CICD
+run-name: ${{ gitea.actor }} CICD - ${{ gitea.ref_name }}
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  CICD:
+    runs-on: ubuntu-latest
+    container: node:22
+    steps:
+      - uses: actions/checkout@v3 # Checks out your repository
+      - name: Install UV
+        shell: bash
+        run: |
+          whoami
+          which hugo || true
+          apt update
+          cat /etc/os-release
+          apt install -y ca-certificates curl gnupg unzip sudo groff tree jq
+          apt install -y python3 python3-pip python3-venv
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install uv
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # In staging, we want to see the 'future' posts
+      - name: Test uv exists
+        shell: bash
+        run: |
+          source .venv/bin/activate
+          uv --version
+          which uv
+          ls -ltra
+
+      - name: Install and configure
+        shell: bash
+        run: |
+          which uv
+          uv tool install pyinfra
+          ls -ltra
+          ./create_inventory.sh --hosts 192.168.1.77 --sshuser '${{ secrets.SSHUSER }}' \
+                   --sshpass '${{ secrets.SSHPASS }}' --output ./our_inventory.py
+
+      - name: Invokaton
+        shell: bash
+        run: |
+          set -x
+          pyinfra -y our_inventory.py deploy.py
